@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' file:; connect-src 'self' file:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <title>S3 Browser Lite - Xem thử giao diện</title>
+  <link rel="stylesheet" href="../../frontend/dist/styles.css">
+  <script src="./mock.js"></script>
+  <script type="module" src="../../frontend/dist/app.js"></script>
+</head>
+<body>
+  <header class="app-header"><h1 data-i18n="app"></h1><div id="tabs" role="tablist"></div></header>
+  <div id="status" role="status" aria-live="polite"></div>
+  <div class="workspace">
+    <aside>
+      <h2 data-i18n="storages"></h2><ul id="profiles" class="navigation"></ul>
+      <button id="addProfile" class="add-bucket" type="button" data-i18n="add"></button>
+      <h2 data-i18n="profiles"></h2>
+      <div class="button-grid">
+        <button id="editProfile" data-i18n="edit"></button><button id="duplicateProfile" data-i18n="duplicate"></button>
+        <button id="removeProfile" data-i18n="remove"></button><button id="testProfile" data-i18n="test"></button>
+        <button id="openProfile" data-i18n="open"></button><button id="exportProfiles" data-i18n="export"></button>
+      </div>
+      <h2 data-i18n="buckets"></h2><ul id="buckets" class="navigation"></ul>
+      <button id="createBucket" class="add-bucket" type="button" data-i18n="createBucket"></button>
+      <div class="button-grid bucket-actions">
+        <button id="bucketPolicy" type="button" data-i18n="bucketPolicy"></button><button id="bucketArn" type="button" data-i18n="bucketArn"></button>
+      </div>
+    </aside>
+    <main>
+      <p id="tlsWarning" class="warning" data-i18n="insecureWarning" hidden></p>
+      <nav id="breadcrumb" data-i18n-aria="breadcrumb"></nav>
+      <div id="sizeInfo" class="size-info" role="status" aria-live="off" hidden></div>
+      <div class="toolbar">
+        <button id="refresh" data-i18n="refresh"></button><button id="upload" data-i18n="upload"></button>
+        <button id="uploadFolder" data-i18n="uploadFolder"></button><button id="download" data-i18n="download"></button>
+        <button id="createFolder" data-i18n="createFolder"></button><button id="deleteObjects" data-i18n="remove"></button>
+        <button id="move" data-i18n="move"></button><button id="copy" data-i18n="copy"></button>
+        <button id="presign" data-i18n="presign"></button><button id="properties" data-i18n="properties"></button>
+      </div>
+      <div class="filter-bar">
+        <input id="filter" type="search" data-i18n-placeholder="filter" data-i18n-aria="filter">
+        <select id="sort" data-i18n-aria="objectName"><option value="name" data-i18n="objectName"></option><option value="size" data-i18n="size"></option><option value="modified" data-i18n="modified"></option></select>
+        <button id="sortDirection" data-i18n="ascending"></button>
+      </div>
+      <div id="dropZone" class="objects" tabindex="0">
+        <table><thead><tr><th class="check"><input id="selectAll" type="checkbox" data-i18n-aria="selectAll"></th><th data-i18n="objectName"></th><th data-i18n="size"></th><th data-i18n="modified"></th></tr></thead><tbody id="objects"></tbody></table>
+        <p id="empty"></p>
+      </div>
+      <footer><span id="selectionCount"></span><button id="more" data-i18n="more" hidden></button></footer>
+      <p class="hint" data-i18n="dropHint"></p><p class="hint" data-i18n="shortcuts"></p>
+    </main>
+  </div>
+  <details class="transfers" open><summary data-i18n="transfers"></summary>
+    <label class="concurrency"><span data-i18n="concurrency"></span><input id="concurrency" type="number" min="1" max="10" value="3"></label>
+    <div class="transfer-table"><table><thead><tr><th data-i18n="task"></th><th data-i18n="progress"></th><th data-i18n="speed"></th><th data-i18n="status"></th><th data-i18n="actions"></th></tr></thead><tbody id="transfers"></tbody></table></div>
+  </details>
+  <dialog id="profileDialog"><form id="profileForm">
+    <div class="dialog-header"><h2 data-i18n="profileTitle"></h2><button id="importProfiles" type="button" data-i18n="import"></button></div>
+    <label><span data-i18n="name"></span><input name="name" required maxlength="200"></label>
+    <label><span data-i18n="endpoint"></span><input name="endpoint" type="url" maxlength="2048"></label>
+    <label><span data-i18n="region"></span><input name="region" maxlength="128" value="us-east-1"></label>
+    <label><span data-i18n="accessKey"></span><input name="accessKeyId" maxlength="1024" autocomplete="off"></label>
+    <label><span data-i18n="secret"></span><input name="secretAccessKey" type="password" maxlength="8192" autocomplete="new-password"></label>
+    <p id="secretHint" class="hint"></p>
+    <label class="checkbox"><input name="forcePathStyle" type="checkbox"><span data-i18n="pathStyle"></span></label>
+    <label class="checkbox"><input name="allowInsecureTls" type="checkbox"><span data-i18n="insecure"></span></label>
+    <p class="warning" data-i18n="insecureWarning"></p>
+    <label><span data-i18n="defaultBucket"></span><input name="defaultBucket" maxlength="255"></label>
+    <p id="profileError" class="error" role="alert"></p>
+    <div class="dialog-actions"><button id="testDraft" type="button" data-i18n="test"></button><button type="submit" data-i18n="save"></button><button id="cancelProfile" type="button" data-i18n="cancel"></button></div>
+  </form></dialog>
+  <dialog id="policyDialog"><form id="policyForm">
+    <h2 id="policyTitle"></h2>
+    <p class="warning" data-i18n="policyWarning"></p>
+    <p id="policyEmptyHint" class="hint" data-i18n="policyEmptyHint" hidden></p>
+    <label><span data-i18n="policyLabel"></span><textarea id="policyInput" class="policy-textarea" rows="18" spellcheck="false" maxlength="20480"></textarea></label>
+    <p id="policyError" class="error" role="alert"></p>
+    <div class="dialog-actions"><button id="savePolicy" type="submit" data-i18n="savePolicy"></button><button id="deletePolicy" type="button" data-i18n="deletePolicy"></button><button id="cancelPolicy" type="button" data-i18n="cancel"></button></div>
+  </form></dialog>
+  <dialog id="arnDialog"><form id="arnForm">
+    <h2 id="arnTitle"></h2>
+    <label><span data-i18n="arnPresetLabel"></span><select id="arnPreset"></select></label>
+    <label><span data-i18n="arnPrefixLabel"></span><input id="arnPrefix" type="text" maxlength="256" spellcheck="false" autocomplete="off"></label>
+    <div id="arnList" class="arn-list"></div>
+    <p class="hint" data-i18n="arnHint"></p>
+    <p id="arnError" class="error" role="alert"></p>
+    <div class="dialog-actions"><button id="closeArn" type="button" data-i18n="close"></button></div>
+  </form></dialog>
+  <dialog id="actionDialog"><form id="actionForm"><h2 id="actionTitle"></h2><p id="actionMessage"></p><div id="actionFields"></div><div class="dialog-actions"><button id="actionSubmit" type="submit" data-i18n="done"></button><button id="actionCancel" type="button" data-i18n="cancel"></button></div></form></dialog>
+</body>
+</html>

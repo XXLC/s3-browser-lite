@@ -1,0 +1,10 @@
+build/bin/
+.gocache/
+frontend/wailsjs/
+*.log
+tools/ui-preview/out/edge-*/
+vendor/
+reference/
+tools/ui-preview/out/
+build/mac/
+build/windows/*.exe

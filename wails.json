@@ -1,0 +1,8 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "s3-browser-lite",
+  "outputfilename": "S3BrowserLite",
+  "frontend:dir": "frontend",
+  "assetdir": "frontend/dist",
+  "author": { "name": "S3 Browser Lite" }
+}

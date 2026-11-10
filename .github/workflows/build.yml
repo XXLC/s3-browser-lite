@@ -1,0 +1,36 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows/amd64
+            artifact: S3BrowserLite-windows
+          - os: macos-latest
+            platform: darwin/universal
+            artifact: S3BrowserLite-macos
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Cài Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.17.0
+      - name: Kiểm thử
+        run: go test ./...
+      - name: Build
+        run: wails build -s -clean -platform ${{ matrix.platform }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/bin/*
