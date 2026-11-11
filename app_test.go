@@ -13,6 +13,7 @@ import (
 
 	"s3browser/internal/backend"
 	"s3browser/internal/profiles"
+	"s3browser/internal/service"
 	"s3browser/internal/testutil"
 	"s3browser/internal/transfers"
 )
@@ -25,7 +26,7 @@ func fixture(t *testing.T) (*App, profiles.Profile) {
 	if err != nil {
 		t.Fatal("Không tạo được hồ sơ kiểm thử")
 	}
-	a := &App{backend: b}
+	a := &App{Service: service.New(b)}
 	t.Cleanup(b.Close)
 	return a, saved
 }
@@ -109,11 +110,11 @@ func TestAppChỉTảiXuốngThưMụcĐãChọn(t *testing.T) {
 	directory := testutil.Temporary(t)
 	_, err := a.TransfersDownload(p.ID, "kho", []string{"a"}, directory)
 	errorCode(t, err, "ForbiddenPath")
-	chosen, err := a.backend.ChooseDirectory(directory)
+	chosen, err := a.Backend.ChooseDirectory(directory)
 	if err != nil {
 		t.Fatal("Không cấp quyền thư mục kiểm thử")
 	}
-	if err = a.backend.CheckDirectory(chosen); err != nil {
+	if err = a.Backend.CheckDirectory(chosen); err != nil {
 		t.Fatal("Không nhận thư mục đã chọn")
 	}
 	_, err = a.TransfersDownload(p.ID, "kho", []string{"a"}, filepath.Join(chosen, "con"))
@@ -136,7 +137,7 @@ func TestAppKhóaHồSơTrongThaoTácS3(t *testing.T) {
 		_, _ = io.WriteString(w, `<ListAllMyBucketsResult/>`)
 	}))
 	defer server.Close()
-	original, err := a.backend.Profiles.Get(p.ID)
+	original, err := a.Backend.Profiles.Get(p.ID)
 	if err != nil {
 		t.Fatal("Không lấy được hồ sơ giả lập")
 	}
@@ -163,7 +164,7 @@ func TestAppKhóaHồSơTrongThaoTácS3(t *testing.T) {
 func TestAppKhóaHồSơTrongHàngĐợi(t *testing.T) {
 	a, p := fixture(t)
 	started := make(chan struct{})
-	job, err := a.backend.Transfers.Add("download", "Tệp", []string{p.ID}, func(ctx context.Context, _ transfers.Progress) error { close(started); <-ctx.Done(); return ctx.Err() })
+	job, err := a.Backend.Transfers.Add("download", "Tệp", []string{p.ID}, func(ctx context.Context, _ transfers.Progress) error { close(started); <-ctx.Done(); return ctx.Err() })
 	if err != nil {
 		t.Fatal("Không tạo được tác vụ giả lập")
 	}
@@ -178,7 +179,7 @@ func TestAppKhóaHồSơTrongHàngĐợi(t *testing.T) {
 }
 func TestAppLọcKhóaTrongMãLỗiMáyChủ(t *testing.T) {
 	a, p := fixture(t)
-	original, _ := a.backend.Profiles.Get(p.ID)
+	original, _ := a.Backend.Profiles.Get(p.ID)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusForbidden)
 		_, _ = io.WriteString(w, `<Error><Code>AccessDenied</Code><Message>Máy chủ từ chối `+original.SecretAccessKey+` `+original.AccessKeyID+`</Message></Error>`)
@@ -231,7 +232,7 @@ func TestAppBucketPolicyTừChốiThamSốSaiTrướcKhiGọiMạngVàThựcThi(
 		}
 	}))
 	defer server.Close()
-	original, _ := a.backend.Profiles.Get(p.ID)
+	original, _ := a.Backend.Profiles.Get(p.ID)
 	original.Endpoint = server.URL
 	p, err := a.ProfilesSave(original)
 	if err != nil {
@@ -275,7 +276,7 @@ func TestAppTínhVàHủyDungLượngKhôngKhóaHồSơ(t *testing.T) {
 		<-r.Context().Done()
 	}))
 	defer server.Close()
-	original, _ := a.backend.Profiles.Get(p.ID)
+	original, _ := a.Backend.Profiles.Get(p.ID)
 	original.Endpoint = server.URL
 	p, err := a.ProfilesSave(original)
 	if err != nil {

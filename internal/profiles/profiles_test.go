@@ -170,3 +170,69 @@ func TestTệpHỏngVàGiớiHạnHồSơ(t *testing.T) {
 	_, err = store.Import(`[{"name":"Kho vượt giới hạn"}]`)
 	code(t, err, "ProfileLimit")
 }
+func TestKhóaChủTệpVàBiếnMôiTrường(t *testing.T) {
+	dir := testutil.Temporary(t)
+	keyFile := filepath.Join(dir, "S3BrowserLite", "profiles.key")
+	c := profiles.FileKeyCipher(func() (string, error) { return keyFile, nil })
+	t.Setenv("S3BROWSER_MASTER_KEY", "")
+
+	// Chỉ đọc (Decrypt) khi chưa có tệp khóa thì không được tạo tệp.
+	if _, err := c.Decrypt([]byte("0123456789abcdef0123456789abcdef")); err == nil {
+		t.Fatal("Giải mã khi chưa có khóa phải báo lỗi")
+	}
+	if _, err := os.Stat(keyFile); !os.IsNotExist(err) {
+		t.Fatal("Chỉ đọc không được tạo tệp khóa")
+	}
+
+	// Mã hóa lần đầu phải tạo tệp khóa 32 byte và khứ hồi qua Store.
+	store := profiles.New(filepath.Join(dir, "S3BrowserLite", "profiles.json"), c)
+	secret := testutil.Random()
+	saved, err := store.Save(profiles.Profile{Name: "Kho Linux", AccessKeyID: testutil.Random(), SecretAccessKey: secret})
+	if err != nil {
+		t.Fatalf("Không lưu được hồ sơ với khóa tệp: %v", err)
+	}
+	rawKey, err := os.ReadFile(keyFile)
+	if err != nil || len(rawKey) != 32 {
+		t.Fatalf("Tệp khóa không đúng 32 byte: len=%d, err=%v", len(rawKey), err)
+	}
+	got, err := store.Get(saved.ID)
+	if err != nil || got.SecretAccessKey != secret {
+		t.Fatalf("Không giải mã lại được hồ sơ: %v", err)
+	}
+
+	// Biến môi trường S3BROWSER_MASTER_KEY sai định dạng phải báo lỗi rõ ràng và không lưu.
+	dirBad := testutil.Temporary(t)
+	keyFileBad := filepath.Join(dirBad, "profiles.key")
+	profilesFileBad := filepath.Join(dirBad, "profiles.json")
+	cBad := profiles.FileKeyCipher(func() (string, error) { return keyFileBad, nil })
+	storeBad := profiles.New(profilesFileBad, cBad)
+	for _, bad := range []string{"không-phải-base64!!!", "dG9vLXNob3J0"} {
+		t.Setenv("S3BROWSER_MASTER_KEY", bad)
+		if _, err := cBad.Encrypt([]byte("bí-mật")); err == nil || !strings.Contains(err.Error(), "S3BROWSER_MASTER_KEY") {
+			t.Fatalf("Khóa chủ sai định dạng %q phải báo lỗi rõ ràng, nhận: %v", bad, err)
+		}
+		if _, err := storeBad.Save(profiles.Profile{Name: "Kho lỗi", SecretAccessKey: secret}); err == nil {
+			t.Fatal("Không được lưu hồ sơ khi S3BROWSER_MASTER_KEY sai định dạng")
+		}
+		if _, err := os.Stat(profilesFileBad); !os.IsNotExist(err) {
+			t.Fatal("Đã ghi tệp hồ sơ khi khóa chủ sai")
+		}
+		if _, err := os.Stat(keyFileBad); !os.IsNotExist(err) {
+			t.Fatal("Đã tạo tệp khóa khi đã đặt biến môi trường")
+		}
+	}
+
+	// Biến môi trường S3BROWSER_MASTER_KEY hợp lệ (32 byte base64 chuẩn) dùng trực tiếp, không tạo tệp khóa.
+	t.Setenv("S3BROWSER_MASTER_KEY", "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+	savedEnv, err := storeBad.Save(profiles.Profile{Name: "Kho biến môi trường", SecretAccessKey: secret})
+	if err != nil {
+		t.Fatalf("Không lưu được hồ sơ với S3BROWSER_MASTER_KEY hợp lệ: %v", err)
+	}
+	if _, err := os.Stat(keyFileBad); !os.IsNotExist(err) {
+		t.Fatal("Có S3BROWSER_MASTER_KEY thì không được tạo tệp profiles.key")
+	}
+	gotEnv, err := storeBad.Get(savedEnv.ID)
+	if err != nil || gotEnv.SecretAccessKey != secret {
+		t.Fatalf("Giải mã bằng S3BROWSER_MASTER_KEY không khớp: %v", err)
+	}
+}

@@ -33,7 +33,7 @@ export const vi = {
   targetTab: 'Tab đích', targetPrefix: 'Thư mục đích tính từ gốc bucket (để trống là gốc)',
   expiry: 'Thời hạn URL (giây, tối đa 604800)', urlWarning: 'Bất kỳ ai có URL đều có thể tải đối tượng trong thời hạn đã chọn.',
   deleted: 'Đã xóa các mục đã chọn.', moved: 'Đã đổi tên hoặc di chuyển.', folderCreated: 'Đã tạo thư mục.',
-  queuedTransfer: 'Đã thêm tác vụ vào hàng đợi.', selectOne: 'Vui lòng chọn đúng một đối tượng.',
+  queuedTransfer: 'Đã thêm tác vụ vào hàng đợi.', downloadStarted: 'Đã bắt đầu tải xuống qua trình duyệt.', selectOne: 'Vui lòng chọn đúng một đối tượng.',
   selectItems: 'Vui lòng chọn ít nhất một mục.', selectFile: 'Vui lòng chọn một tệp, không chọn thư mục.',
   selectBucket: 'Vui lòng mở một tab và chọn bucket.', selectProfile: 'Vui lòng chọn hồ sơ ở thanh bên trái.',
   noTarget: 'Hãy mở thêm một tab và chọn bucket đích trước khi sao chép.',

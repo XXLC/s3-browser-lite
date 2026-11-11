@@ -44,8 +44,56 @@ jobs:
           name: ${{ matrix.asset }}
           path: ${{ matrix.asset }}
 
+  package-web:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            bin: s3browser-web
+            ext: tar.gz
+          - goos: linux
+            goarch: arm64
+            bin: s3browser-web
+            ext: tar.gz
+          - goos: darwin
+            goarch: amd64
+            bin: s3browser-web
+            ext: tar.gz
+          - goos: darwin
+            goarch: arm64
+            bin: s3browser-web
+            ext: tar.gz
+          - goos: windows
+            goarch: amd64
+            bin: s3browser-web.exe
+            ext: zip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Build bản web
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: go build -o build/web/${{ matrix.bin }} ./cmd/s3browser-web
+      - name: Đóng gói tar.gz
+        if: matrix.ext == 'tar.gz'
+        run: tar -C build/web -czf "s3browser-web-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz" "${{ matrix.bin }}"
+      - name: Đóng gói zip
+        if: matrix.ext == 'zip'
+        run: (cd build/web && zip "../../s3browser-web-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip" "${{ matrix.bin }}")
+      - uses: actions/upload-artifact@v4
+        with:
+          name: s3browser-web-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.${{ matrix.ext }}
+          path: s3browser-web-${{ github.ref_name }}-${{ matrix.goos }}-${{ matrix.goarch }}.${{ matrix.ext }}
+
   publish:
-    needs: package
+    needs: [package, package-web]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -56,7 +104,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" dist/*.zip \
+          gh release create "${{ github.ref_name }}" dist/*.zip dist/*.tar.gz \
             --repo "${{ github.repository }}" \
             --title "S3 Browser Lite ${{ github.ref_name }}" \
-            --notes "Bản chưa ký: Windows có thể hiện SmartScreen (More info, Run anyway); macOS chặn lần đầu mở, bấm chuột phải vào ứng dụng rồi chọn Open (hoặc chạy xattr -cr trên .app). Yêu cầu WebView2 trên Windows."
+            --notes "Bản desktop (Windows, macOS): S3BrowserLite-*.zip. Bản web (Windows, Linux, macOS; amd64 và arm64) chạy được trên máy không cài Go: giải nén rồi chạy s3browser-web, trình duyệt tự mở. Bản chưa ký: Windows có thể hiện SmartScreen (More info, Run anyway); macOS chặn lần đầu mở, bấm chuột phải vào ứng dụng rồi chọn Open (hoặc chạy xattr -cr trên .app; với bản web chạy xattr -d com.apple.quarantine s3browser-web). Bản desktop Windows yêu cầu WebView2."

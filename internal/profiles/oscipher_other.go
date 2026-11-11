@@ -2,5 +2,18 @@
 
 package profiles
 
-// osCipher chưa có kho mã hóa hệ điều hành trên nền tảng này; DPAPI ở đây từ chối mọi thao tác.
-func osCipher() Cipher { return DPAPI{} }
+import (
+	"os"
+	"path/filepath"
+)
+
+// osCipher mã hóa khóa bí mật bằng AES-256-GCM với khóa chủ từ S3BROWSER_MASTER_KEY hoặc tệp profiles.key.
+func osCipher() Cipher {
+	return FileKeyCipher(func() (string, error) {
+		root, err := os.UserConfigDir()
+		if err != nil {
+			return "", err
+		}
+		return filepath.Join(root, "S3BrowserLite", "profiles.key"), nil
+	})
+}

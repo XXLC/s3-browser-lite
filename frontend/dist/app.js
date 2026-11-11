@@ -621,7 +621,7 @@ async function upload(directory) {
 async function download() {
   const tab = requireTab(); const keys = selection(tab);
   const directory = await api.dialogs.downloadDirectory();
-  if (directory) { await api.transfers.download(tab.profileId, tab.bucket, keys, directory); notify(t.queuedTransfer); }
+  if (directory) { const jobs = await api.transfers.download(tab.profileId, tab.bucket, keys, directory); notify(jobs?.length ? t.queuedTransfer : t.downloadStarted); }
 }
 async function deleteObjects() {
   const tab = requireTab(); const keys = selection(tab);
@@ -782,7 +782,7 @@ function renderTransfers() {
   }
 }
 $('concurrency').onchange = event => run(async () => { await api.transfers.setConcurrency(Number(event.target.value)); });
-api.transfers.onUpdate(job => { state.tasks.set(job.id, job); renderTransfers(); });
+api.transfers.onUpdate(job => { if (job.removed) state.tasks.delete(job.id); else state.tasks.set(job.id, job); renderTransfers(); });
 if (typeof api.s3.onSize === 'function') {
   api.s3.onSize(update => {
     if (!update || !update.profileId || !update.bucket) return;
